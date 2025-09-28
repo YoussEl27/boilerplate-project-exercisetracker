@@ -26,7 +26,7 @@ app.post('/api/users', function (req, res) {
 
   res.json({
     username: username,
-    _id:id
+    _id:id.toString()
   })
 })
 
@@ -35,15 +35,11 @@ app.get('/api/users',  function (req, res) {
 })
 
 app.post('/api/users/:_id/exercises',  function (req, res) {
-  const id = req.params._id
+  const id = (req.params._id).toString();
   let user = users.find(user => user._id === id)
   const description = req.body.description
   const duration = req.body.duration
-  let date = req.body.date
-
-  if (!date) {
-    date = new Date()
-  }
+  let date = req.body.date ? new Date(req.body.date) : new Date();
 
   if (user) {
     exercises.push({
@@ -70,14 +66,27 @@ app.post('/api/users/:_id/exercises',  function (req, res) {
 })
 
 app.get('/api/users/:_id/logs', (req, res) => {
-  const id = req.params._id
+  const id = (req.params._id).toString()
 
   let user = users.find(user => user._id === id)
   if(!user) return res.json({error: 'Invalid User'})
 
-  let user_log = exercises.filter(user => Number(user._id) === Number(id))
-      .map(({ description, duration, date }) => ({ description, duration, date }))
+  let user_log = exercises.filter(user => (user._id) === (id))
 
+  const {from, to, limit} = req.query
+
+  if (from) {
+    const fromDate = new Date(from)
+    user_log = user_log.filter(userDate => new Date(userDate.date) >= fromDate)
+  }
+  if (to) {
+    const fromDate = new Date(to)
+    user_log = user_log.filter(userDate => new Date(userDate.date) <= fromDate)
+  }
+
+  if (limit) {
+    user_log = user_log.slice(0, Number(limit))
+  }
 
   const count = user_log.length
 
@@ -85,7 +94,7 @@ app.get('/api/users/:_id/logs', (req, res) => {
     _id: id,
     username: user.username,
     count: count,
-    log: user_log,
+    log: user_log.map(({ description, duration, date }) => ({ description, duration, date })),
   })
 
 })
